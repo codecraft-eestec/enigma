@@ -9,12 +9,12 @@ namespace CodeCraft.Models.Nodes
     public class Meal
     {
         [JsonProperty]
-        public int id { get; set; }
-        [JsonProperty]
         public String name { get; set; }
         [JsonProperty]
         public String description { get; set; }
         [JsonProperty]
         public String picture { get; set; }
+        [JsonProperty]
+        public string price { get; set; }
     }
 }

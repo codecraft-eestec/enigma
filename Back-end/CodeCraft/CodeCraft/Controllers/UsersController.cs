@@ -4,48 +4,63 @@ using System.Linq;
 using System.Web;
 using System.Web.Http;
 using System.Web.Mvc;
+using CodeCraft.Models;
+using CodeCraft.Models.Nodes;
 
 namespace CodeCraft.Controllers
 {
     public class UsersController : Controller
     {
+        /// <summary>
+        /// Adds new users to the database and returns status.
+        /// </summary>
+        /// <param name="users">New users.</param>
+        /// <returns>Status of a transaction.</returns>
+        public int Register([FromBody] User user)
+        {
+            DataProvider provider = new DataProvider();
+            return provider.registerUser(user);
+        }
         //
         // GET: /Users/
         /// Get all available users.
         /// </summary>
         /// <returns>JsonArray of all available users.</returns>
-        public JsonResult Get()
+        public JsonResult GetAll()
         {
-
-            return new JsonResult();
+            DataProvider provider = new DataProvider();
+            return Json(provider.getAllUsers(), JsonRequestBehavior.AllowGet);
         }
         /// <summary>
         /// Get an user with specified id from database.
         /// </summary>
         /// <param name="Id"></param>
         /// <returns></returns>
-        public JsonResult Get(int Id)
+        public JsonResult GetOne(string username)
         {
-            return new JsonResult();
-        }
-        /// <summary>
-        /// Adds new users to the database and returns status.
-        /// </summary>
-        /// <param name="users">New users.</param>
-        /// <returns>Status of a transaction.</returns>
-        public int Add([FromBody] JsonResult users)
-        {
-            return 1;
+            DataProvider provider = new DataProvider();
+            return Json(provider.getUser(username), JsonRequestBehavior.AllowGet);
         }
         /// <summary>
         /// Deletes specifies users from database and returns status.
         /// </summary>
         /// <param name="Id">Id of a users to be deleted.</param>
         /// <returns>Status of a transaction.</returns>
-        public int Delete(int Id)
+        public int Delete(string username)
         {
-            return 1;
+            DataProvider provider = new DataProvider();
+            return provider.deleteUser(username);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="meal"></param>
+        /// <returns></returns>
+        public int Update([FromBody] User user)
+        {
+            DataProvider provider = new DataProvider();
+            return provider.updateUser(user);
+        }
     }
 }

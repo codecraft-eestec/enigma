@@ -14,7 +14,7 @@ namespace CodeCraft.Models
         {
             if (client == null)
             {
-                client = new GraphClient(new Uri("http://localhost:7474/db/data"), "neo4j", "codecraft");
+                client = new GraphClient(new Uri("http://localhost:7474/db/data"), "neo4j", "Root");
                 try
                 {
                     client.Connect();

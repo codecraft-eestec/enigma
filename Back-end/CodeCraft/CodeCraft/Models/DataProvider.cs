@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
-using Neo4jClient;
 using CodeCraft.Models.Nodes;
+using Neo4jClient;
 
 namespace CodeCraft.Models
 {
@@ -12,12 +12,15 @@ namespace CodeCraft.Models
         private GraphClient client = DataLayer.getClient();
         private IEnumerable<Meal> queryMeal;
         private IEnumerable<Order> queryOrder;
+        private IEnumerable<User> queryUser;
+
         #region Meal
         public Meal[] getAllMeals()
         {
             queryMeal = client.Cypher
                              .Match("(meal:Meal)")
                            .Return(meal => meal.As<Meal>())
+                           
                           .Results;
             Meal[] array = new Meal[queryMeal.Count()];
             int i = 0;
@@ -29,11 +32,11 @@ namespace CodeCraft.Models
             return array;
         }
 
-        public Meal getMeal(int id)
+        public Meal getMeal(string name)
         {
             queryMeal = client.Cypher
                              .Match("(meal:Meal)")
-                             .Where("meal.id='" + id + "'")
+                             .Where("meal.name='" + name + "'")
                            .Return(meal => meal.As<Meal>())
                           .Results;
             Meal oneMeal = null;
@@ -49,7 +52,6 @@ namespace CodeCraft.Models
         {
             var newMeal = new
             {
-                id = recivedMeal.id,
                 name = recivedMeal.name,
                 description = recivedMeal.description,
                 picture = recivedMeal.picture
@@ -60,7 +62,7 @@ namespace CodeCraft.Models
                         .WithParam("newMeal", newMeal)
                         .ExecuteWithoutResults();
 
-            Meal check = getMeal(recivedMeal.id);
+            Meal check = getMeal(recivedMeal.name);
             if (check != null)
             {
                 return 1;
@@ -71,22 +73,22 @@ namespace CodeCraft.Models
             }
         }
 
-        public int deleteMeal(int id)
+        public int deleteMeal(string name)
         {
             client.Cypher
                        .Match("(meal:Meal)")
-                       .Where("meal.id='" + id + "'")
+                       .Where("meal.name='" + name + "'")
                        .Delete("meal")
                        .ExecuteWithoutResults();
 
-            Meal check = getMeal(id);
+            Meal check = getMeal(name);
             if (check != null)
             {
-                return 1;
+                return -1;
             }
             else
             {
-                return -1;
+                return 1;
             }
         }
 
@@ -95,13 +97,12 @@ namespace CodeCraft.Models
             client.Cypher
                             .Match("(meal:Meal)")
                             .Where("meal.name='" + mealObj.name + "'")
-                            .Set("meal.id='" + mealObj.id + "'")
                             .Set("meal.name='" + mealObj.name + "'")
                             .Set("meal.description='" + mealObj.description + "'")
                             .Set("meal.picture='" + mealObj.picture + "'")
                             .ExecuteWithoutResults();
 
-            Meal check = getMeal(mealObj.id);
+            Meal check = getMeal(mealObj.name);
             if (check != null)
             {
                 return 1;
@@ -113,9 +114,115 @@ namespace CodeCraft.Models
         }
         #endregion
 
+        #region Users
+        public int registerUser(User recivedUser)
+        {
+            if (getUser(recivedUser.username) == null)
+            {
+                var newUser = new
+                {
+                    username = recivedUser.username,
+                    password = recivedUser.password,
+                    name = recivedUser.name,
+                    type = "client"
+                };
+
+                client.Cypher
+                            .Create("(" + newUser.username + ":User {newUser})")
+                            .WithParam("newUser", newUser)
+                            .ExecuteWithoutResults();
+
+                User check = getUser(recivedUser.username);
+                if (check != null)
+                {
+                    return 1;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            else
+                return -2;
+        }
+
+        public User getUser(string username)
+        {
+            queryUser = client.Cypher
+                             .Match("(user:User)")
+                             .Where("user.username='" + username + "'")
+                           .Return(user => user.As<User>())
+                          .Results;
+            User oneUser = null;
+            foreach (User result in queryUser)
+            {
+                oneUser = result;
+            }
+
+            return oneUser;
+        }
+
+        public int deleteUser(string username)
+        {
+            client.Cypher
+                       .Match("(user:User)")
+                       .Where("user.username='" + username + "'")
+                       .Delete("user")
+                       .ExecuteWithoutResults();
+
+            User check = getUser(username);
+            if (check != null)
+            {
+                return -1;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+
+        public User[] getAllUsers()
+        {
+            queryUser = client.Cypher
+                             .Match("(user:User)")
+                           .Return(user => user.As<User>())
+                          .Results;
+
+            User[] array = new User[queryUser.Count()];
+            int i = 0;
+            foreach (User result in queryUser)
+            {
+                array[i] = result;
+                i++;
+            }
+            return array;
+        }
+
+        public int updateUser(User userObj)
+        {
+            client.Cypher
+                            .Match("(user:User)")
+                            .Where("user.username='" + userObj.username + "'")
+                            .Set("user.username='" + userObj.username + "'")
+                            .Set("user.password='" + userObj.password + "'")
+                            .Set("user.name='" + userObj.name + "'")
+                            .Set("user.type='" + userObj.type + "'")
+                            .ExecuteWithoutResults();
+
+            User check = getUser(userObj.username);
+            if (check != null)
+            {
+                return 1;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        #endregion
 
         #region Order
-        public Order[] getAllOrder()
+        public OrderResult getAllOrders()
         {
             queryOrder = client.Cypher
                              .Match("(order:Order)")
@@ -128,14 +235,15 @@ namespace CodeCraft.Models
                 array[i] = result;
                 i++;
             }
-            return array;
+            return null;
         }
 
-        public Order getOrder(int id)
+        public Order getOrder(string user, string date)
         {
             queryOrder = client.Cypher
                              .Match("(order:Order)")
-                             .Where("order.id='" + id + "'")
+                             .Where("order.user='" + user + "'")
+                             .AndWhere("order.date='" + date + "'")
                            .Return(order => order.As<Order>())
                           .Results;
             Order oneOrder = null;
@@ -147,41 +255,48 @@ namespace CodeCraft.Models
             return oneOrder;
         }
 
-        public int createOrder(Order recivedOrder)
+        public void createOrder(OrderResult recivedOrder)
         {
             var newOrder = new
             {
-                id = recivedOrder.id,
-                user = recivedOrder.user,
-                date = recivedOrder.date,
-                status = recivedOrder.status
+                user = recivedOrder.order.user,
+                date = recivedOrder.order.date,
+                status = recivedOrder.order.status,
+                note = recivedOrder.order.note
             };
 
             client.Cypher
-                        .Create("(" + newOrder.user + ":Order {newOrder})")
-                        .WithParam("newOrder", newOrder)
-                        .ExecuteWithoutResults();
+           .Match("(user:User)")
+           .Where("user.username='" + recivedOrder.order.user + "'")
+           .Create("user-[:MAKES]->(order:Order {newOrder})")
+           .WithParam("newOrder", newOrder)
+           .ExecuteWithoutResults();
 
-            Order check = getOrder(recivedOrder.id);
-            if (check != null)
+            foreach (KeyValuePair<string, int> item in recivedOrder.allMeals)
             {
-                return 1;
+                client.Cypher
+           .Match("(order:Order)")
+           .Where("order.user='" + recivedOrder.order.user + "'")
+           .AndWhere("order.date='" + recivedOrder.order.date + "'")
+           .Match("(meal:Meal)")
+           .Where("meal.name='" + item.Key + "'")
+           .Create("order-[:INCLUDES {quantity}]->meal")
+           .WithParam("quantity", new { quantity = item.Value })  //property of relationship
+           .ExecuteWithoutResults();
             }
-            else
-            {
-                return -1;
-            }
+
         }
 
-        public int deleteOrder(int id)
+        public int deleteOrder(string user, string date)
         {
             client.Cypher
                        .Match("(order:Order)")
-                       .Where("order.id='" + id + "'")
+                       .Where("order.user='" + user + "'")
+                       .AndWhere("order.id='" + date + "'")
                        .Delete("order")
                        .ExecuteWithoutResults();
 
-            Order check = getOrder(id);
+            Order check = getOrder(user, date);
             if (check != null)
             {
                 return 1;
@@ -198,12 +313,12 @@ namespace CodeCraft.Models
                             .Match("(order:Order)")
                             .Where("order.user='" + orderObj.user + "'")
                             .Set("order.user='" + orderObj.user + "'")
-                            .Set("order.id='" + orderObj.id + "'")
                             .Set("order.date='" + orderObj.date + "'")
                             .Set("order.status='" + orderObj.status + "'")
+                            .Set("order.note='" + orderObj.note + "'")
                             .ExecuteWithoutResults();
 
-            Order check = getOrder(orderObj.id);
+            Order check = getOrder(orderObj.user, orderObj.date);
             if (check != null)
             {
                 return 1;
@@ -213,6 +328,25 @@ namespace CodeCraft.Models
                 return -1;
             }
         }
+
+        public string DateTimeToMilliseconds(DateTime time)
+        {
+            DateTime startTime = new DateTime(2016, 9, 14);
+            TimeSpan unixtime = startTime - time;
+            String date = unixtime.TotalMilliseconds.ToString();
+
+            return date;
+        }
+
+        public DateTime MillisecondsToDateTime(string result)
+        {
+            DateTime startTime = new DateTime(2016, 9, 14);
+            TimeSpan ts = TimeSpan.FromMilliseconds(Convert.ToDouble(result));
+            DateTime date = startTime + ts;
+
+            return date;
+        }
         #endregion
+
     }
 }
